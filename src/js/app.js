@@ -50,17 +50,13 @@ const App = (() => {
     if (view === 'dashboard') Dashboard.init();
     if (view === 'dogs') Dogs.init();
 
-    // Staggered card entrance animation
+    // Staggered card entrance animation (non-blocking: cards stay visible)
     requestAnimationFrame(() => {
       const activeView = document.getElementById(`view-${view}`);
       if (activeView) {
         const cards = activeView.querySelectorAll('.stat-card, .dog-card, .card');
         cards.forEach((card, index) => {
-          card.style.opacity = '0';
-          card.style.animation = 'none';
-          // Force reflow
-          void card.offsetHeight;
-          card.style.animation = `cardStaggerIn 0.4s cubic-bezier(0.21,1.02,0.73,1) ${index * 0.07}s forwards`;
+          card.style.animation = `staggerIn 0.4s cubic-bezier(0.21,1.02,0.73,1) ${index * 0.06}s both`;
         });
       }
     });
