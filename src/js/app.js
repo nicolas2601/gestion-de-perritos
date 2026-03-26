@@ -4,13 +4,16 @@
 
 const App = (() => {
   let currentView = 'dashboard';
+  let dashboardRefreshInterval = null;
 
   function init() {
     SupabaseClient.init();
     setupNavigation();
     setupClock();
+    setupGreeting();
     setupMobileMenu();
     navigateTo('dashboard');
+    startDashboardAutoRefresh();
   }
 
   function setupNavigation() {
@@ -47,6 +50,21 @@ const App = (() => {
     if (view === 'dashboard') Dashboard.init();
     if (view === 'dogs') Dogs.init();
 
+    // Staggered card entrance animation
+    requestAnimationFrame(() => {
+      const activeView = document.getElementById(`view-${view}`);
+      if (activeView) {
+        const cards = activeView.querySelectorAll('.stat-card, .dog-card, .card');
+        cards.forEach((card, index) => {
+          card.style.opacity = '0';
+          card.style.animation = 'none';
+          // Force reflow
+          void card.offsetHeight;
+          card.style.animation = `cardStaggerIn 0.4s cubic-bezier(0.21,1.02,0.73,1) ${index * 0.07}s forwards`;
+        });
+      }
+    });
+
     // Close mobile menu
     closeMobileMenu();
   }
@@ -54,17 +72,55 @@ const App = (() => {
   function setupClock() {
     function updateClock() {
       const now = new Date();
-      const el = document.getElementById('current-time');
-      if (el) {
-        el.textContent = now.toLocaleTimeString('es-CO', {
+      const timeEl = document.getElementById('current-time');
+      if (timeEl) {
+        timeEl.textContent = now.toLocaleTimeString('es-CO', {
           hour: '2-digit',
           minute: '2-digit',
           second: '2-digit'
         });
       }
+
+      const dateEl = document.getElementById('current-date');
+      if (dateEl) {
+        const options = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
+        let formatted = now.toLocaleDateString('es-CO', options);
+        // Capitalize first letter
+        formatted = formatted.charAt(0).toUpperCase() + formatted.slice(1);
+        dateEl.textContent = formatted;
+      }
     }
     updateClock();
     setInterval(updateClock, 1000);
+  }
+
+  function setupGreeting() {
+    const el = document.getElementById('greeting');
+    if (!el) return;
+    const hour = new Date().getHours();
+    let greeting;
+    if (hour >= 5 && hour < 12) {
+      greeting = 'Buenos días';
+    } else if (hour >= 12 && hour < 18) {
+      greeting = 'Buenas tardes';
+    } else {
+      greeting = 'Buenas noches';
+    }
+    el.textContent = greeting;
+  }
+
+  function startDashboardAutoRefresh() {
+    // Clear existing interval if any
+    if (dashboardRefreshInterval) {
+      clearInterval(dashboardRefreshInterval);
+    }
+    dashboardRefreshInterval = setInterval(() => {
+      if (currentView === 'dashboard') {
+        // Silent refresh - no toast notification
+        Dashboard.loadStats();
+        Dashboard.loadActiveCheckins();
+      }
+    }, 30000);
   }
 
   function setupMobileMenu() {

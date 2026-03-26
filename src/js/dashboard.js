@@ -15,10 +15,18 @@ const Dashboard = (() => {
   async function loadStats() {
     try {
       const stats = await SupabaseClient.getDashboardStats();
-      document.getElementById('stat-active').textContent = stats.activeNow;
-      document.getElementById('stat-total-dogs').textContent = stats.totalDogs;
-      document.getElementById('stat-today').textContent = stats.todayVisits;
-      document.getElementById('stat-checkout').textContent = stats.checkedOutToday;
+
+      // Animate each stat from 0 to its real value
+      const statActive = document.getElementById('stat-active');
+      const statTotalDogs = document.getElementById('stat-total-dogs');
+      const statToday = document.getElementById('stat-today');
+      const statCheckout = document.getElementById('stat-checkout');
+
+      UI.animateCount(statActive, 0, stats.activeNow, 700);
+      UI.animateCount(statTotalDogs, 0, stats.totalDogs, 700);
+      UI.animateCount(statToday, 0, stats.todayVisits, 700);
+      UI.animateCount(statCheckout, 0, stats.checkedOutToday, 700);
+
       // Update sidebar badge
       const badge = document.getElementById('nav-badge-active');
       if (badge) badge.textContent = stats.activeNow;
@@ -36,6 +44,15 @@ const Dashboard = (() => {
       console.error('Error loading checkins:', err);
       UI.toast('Error al cargar check-ins', 'error');
     }
+  }
+
+  // Helper to calculate time color based on hours in daycare
+  function getTimeColor(checkInTime) {
+    const diffMs = Date.now() - new Date(checkInTime).getTime();
+    const hours = diffMs / 3600000;
+    if (hours < 2) return { color: '#16a34a', bg: '#f0fdf4', label: 'Reciente' };
+    if (hours <= 6) return { color: '#d97706', bg: '#fffbeb', label: 'Moderado' };
+    return { color: '#dc2626', bg: '#fef2f2', label: 'Prolongado' };
   }
 
   function renderCheckins() {
@@ -61,7 +78,7 @@ const Dashboard = (() => {
           <div class="empty-state">
             <div class="empty-icon">&#128054;</div>
             <h3>${searchQuery ? 'Sin resultados' : 'No hay perros registrados hoy'}</h3>
-            <p>${searchQuery ? 'Intenta con otro nombre' : 'Haz check-in del primer peludo del d\u00eda'}</p>
+            <p>${searchQuery ? 'Intenta con otro nombre' : 'Haz check-in del primer peludo del día'}</p>
             ${!searchQuery ? '<button class="btn btn-primary" onclick="Dashboard.showCheckInModal()">&#43; Nuevo Check-in</button>' : ''}
           </div>
         </td></tr>
@@ -72,6 +89,7 @@ const Dashboard = (() => {
     tbody.innerHTML = filtered.map(c => {
       const dog = c.dogs || {};
       const owner = dog.owners || {};
+      const timeInfo = getTimeColor(c.check_in_time);
       return `
         <tr>
           <td>
@@ -84,7 +102,12 @@ const Dashboard = (() => {
             </div>
           </td>
           <td><span class="time-badge">&#128336; ${UI.formatTime(c.check_in_time)}</span></td>
-          <td><span class="time-badge">${UI.timeAgo(c.check_in_time)}</span></td>
+          <td>
+            <span class="time-badge" style="background:${timeInfo.bg};color:${timeInfo.color};border:1px solid ${timeInfo.color}22;">
+              <span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${timeInfo.color};margin-right:4px;"></span>
+              ${UI.timeAgo(c.check_in_time)}
+            </span>
+          </td>
           <td style="position:relative;">${UI.statusBadge(c.status, c.id)}</td>
           <td>
             <div class="actions-cell">
@@ -130,14 +153,14 @@ const Dashboard = (() => {
         <label>Selecciona el perro</label>
         <select id="checkin-dog-select">
           <option value="">-- Seleccionar --</option>
-          ${availableDogs.map(d => `<option value="${d.id}">${UI.escapeHtml(d.name)} (${UI.escapeHtml(d.breed)}) - Due\u00f1o: ${UI.escapeHtml(d.owners?.name || 'N/A')}</option>`).join('')}
+          ${availableDogs.map(d => `<option value="${d.id}">${UI.escapeHtml(d.name)} (${UI.escapeHtml(d.breed)}) - Dueño: ${UI.escapeHtml(d.owners?.name || 'N/A')}</option>`).join('')}
         </select>
       </div>
       <div class="form-group">
         <label>Notas (opcional)</label>
         <textarea id="checkin-notes" placeholder="Ej: Llega con medicamento para las 2pm..."></textarea>
       </div>
-      ${availableDogs.length === 0 ? '<p style="color:var(--accent);font-size:0.85rem;">Todos los perros registrados ya est\u00e1n en la guarder\u00eda. <a href="#" onclick="Dogs.showCreateModal(); UI.closeModal();" style="color:var(--primary);">Registrar nuevo perro</a></p>' : ''}
+      ${availableDogs.length === 0 ? '<p style="color:var(--accent);font-size:0.85rem;">Todos los perros registrados ya están en la guardería. <a href="#" onclick="Dogs.showCreateModal(); UI.closeModal();" style="color:var(--primary);">Registrar nuevo perro</a></p>' : ''}
     `;
 
     const footer = `
@@ -161,6 +184,7 @@ const Dashboard = (() => {
       await SupabaseClient.checkIn(dogId, notes);
       UI.closeModal();
       UI.toast('Check-in realizado');
+      UI.showConfetti();
       await init();
     } catch (err) {
       console.error('Error check-in:', err);
@@ -169,12 +193,12 @@ const Dashboard = (() => {
   }
 
   async function doCheckOut(checkinId, dogName) {
-    const confirmed = await UI.confirm(`\u00bfRegistrar salida de ${dogName}?`);
+    const confirmed = await UI.confirm(`¿Registrar salida de ${dogName}?`);
     if (!confirmed) return;
 
     try {
       await SupabaseClient.checkOut(checkinId);
-      UI.toast(`${dogName} ha salido. \u00a1Hasta pronto!`);
+      UI.toast(`${dogName} ha salido. ¡Hasta pronto!`);
       await init();
     } catch (err) {
       console.error('Error check-out:', err);

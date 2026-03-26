@@ -20,6 +20,15 @@ const Dogs = (() => {
     }
   }
 
+  // Helper to check if dog was registered less than 7 days ago
+  function isNewDog(dog) {
+    if (!dog.created_at) return false;
+    const createdDate = new Date(dog.created_at);
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    return createdDate > sevenDaysAgo;
+  }
+
   function renderDogs(query = '') {
     const container = document.getElementById('dogs-grid');
     let filtered = allDogs;
@@ -45,15 +54,18 @@ const Dogs = (() => {
       return;
     }
 
-    container.innerHTML = filtered.map(dog => {
+    container.innerHTML = filtered.map((dog, index) => {
       const owner = dog.owners || {};
       const ageText = dog.age_years ? `${dog.age_years}a` : '';
       const ageMonths = dog.age_months ? `${dog.age_months}m` : '';
       const age = [ageText, ageMonths].filter(Boolean).join(' ') || 'N/A';
+      const isNew = isNewDog(dog);
 
       return `
-        <div class="dog-card" onclick="Dogs.showDetail('${dog.id}')">
-          <div class="dog-card-header">
+        <div class="dog-card" onclick="Dogs.showDetail('${dog.id}')" style="position:relative;overflow:hidden;animation:cardStaggerIn 0.4s cubic-bezier(0.21,1.02,0.73,1) ${index * 0.06}s both;">
+          <div style="position:absolute;top:0;left:0;right:0;height:60px;background:linear-gradient(180deg, rgba(99,102,241,0.08) 0%, transparent 100%);pointer-events:none;border-radius:inherit;"></div>
+          ${isNew ? '<span style="position:absolute;top:10px;right:10px;background:linear-gradient(135deg,#8b5cf6,#6366f1);color:#fff;font-size:0.65rem;font-weight:700;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.5px;z-index:1;">Nuevo</span>' : ''}
+          <div class="dog-card-header" style="position:relative;z-index:1;">
             <div class="dog-card-avatar">
               ${dog.photo_url ? `<img src="${UI.escapeHtml(dog.photo_url)}" alt="${UI.escapeHtml(dog.name)}">` : '&#128054;'}
             </div>
@@ -132,7 +144,7 @@ const Dogs = (() => {
 
       <div class="form-row">
         <div class="form-group">
-          <label>Edad (a\u00f1os)</label>
+          <label>Edad (años)</label>
           <input type="number" id="dog-age-years" value="${dog?.age_years || 0}" min="0" max="25">
         </div>
         <div class="form-group">
@@ -147,10 +159,10 @@ const Dogs = (() => {
           <input type="number" id="dog-weight" value="${dog?.weight_kg || ''}" min="0" step="0.1" placeholder="Ej: 12.5">
         </div>
         <div class="form-group">
-          <label>Due\u00f1o *</label>
+          <label>Dueño *</label>
           <select id="dog-owner">
             <option value="">-- Seleccionar --</option>
-            <option value="__new__">+ Registrar nuevo due\u00f1o</option>
+            <option value="__new__">+ Registrar nuevo dueño</option>
             ${owners.map(o => `<option value="${o.id}" ${dog?.owner_id === o.id ? 'selected' : ''}>${UI.escapeHtml(o.name)} - ${UI.escapeHtml(o.phone)}</option>`).join('')}
           </select>
         </div>
@@ -159,11 +171,11 @@ const Dogs = (() => {
       <div id="new-owner-fields" style="display:none;">
         <div class="form-row">
           <div class="form-group">
-            <label>Nombre del due\u00f1o *</label>
+            <label>Nombre del dueño *</label>
             <input type="text" id="owner-name" placeholder="Nombre completo">
           </div>
           <div class="form-group">
-            <label>Tel\u00e9fono *</label>
+            <label>Teléfono *</label>
             <input type="tel" id="owner-phone" placeholder="300 123 4567">
           </div>
         </div>
@@ -181,17 +193,17 @@ const Dogs = (() => {
 
       <div class="form-group">
         <label>Notas de comportamiento</label>
-        <textarea id="dog-behavior" placeholder="Ej: Es t\u00edmido con perros grandes, le gusta jugar con pelotas...">${UI.escapeHtml(dog?.behavior_notes || '')}</textarea>
+        <textarea id="dog-behavior" placeholder="Ej: Es tímido con perros grandes, le gusta jugar con pelotas...">${UI.escapeHtml(dog?.behavior_notes || '')}</textarea>
       </div>
 
       <div class="form-row">
         <div class="form-group">
-          <label>Restricciones m\u00e9dicas</label>
-          <textarea id="dog-medical" placeholder="Ej: Al\u00e9rgico a ciertos medicamentos...">${UI.escapeHtml(dog?.medical_restrictions || '')}</textarea>
+          <label>Restricciones médicas</label>
+          <textarea id="dog-medical" placeholder="Ej: Alérgico a ciertos medicamentos...">${UI.escapeHtml(dog?.medical_restrictions || '')}</textarea>
         </div>
         <div class="form-group">
           <label>Restricciones alimentarias</label>
-          <textarea id="dog-dietary" placeholder="Ej: Solo come alimento hipoalerg\u00e9nico...">${UI.escapeHtml(dog?.dietary_restrictions || '')}</textarea>
+          <textarea id="dog-dietary" placeholder="Ej: Solo come alimento hipoalérgénico...">${UI.escapeHtml(dog?.dietary_restrictions || '')}</textarea>
         </div>
       </div>
 
@@ -202,7 +214,7 @@ const Dogs = (() => {
         </label>
         <label class="form-check">
           <input type="checkbox" id="dog-vaccinated" ${dog?.vaccination_up_to_date ? 'checked' : ''}>
-          <span>Vacunas al d\u00eda</span>
+          <span>Vacunas al día</span>
         </label>
       </div>
     `;
@@ -243,7 +255,7 @@ const Dogs = (() => {
 
     if (!name) { UI.toast('El nombre es obligatorio', 'error'); return; }
     if (!breed) { UI.toast('La raza es obligatoria', 'error'); return; }
-    if (!ownerId && ownerId !== '__new__') { UI.toast('Selecciona un due\u00f1o', 'error'); return; }
+    if (!ownerId && ownerId !== '__new__') { UI.toast('Selecciona un dueño', 'error'); return; }
 
     try {
       // Create new owner if needed
@@ -251,7 +263,7 @@ const Dogs = (() => {
         const ownerName = document.getElementById('owner-name').value.trim();
         const ownerPhone = document.getElementById('owner-phone').value.trim();
         if (!ownerName || !ownerPhone) {
-          UI.toast('Nombre y tel\u00e9fono del due\u00f1o son obligatorios', 'error');
+          UI.toast('Nombre y teléfono del dueño son obligatorios', 'error');
           return;
         }
         const newOwner = await SupabaseClient.createOwner({
@@ -308,7 +320,7 @@ const Dogs = (() => {
         SupabaseClient.getDogHistory(dogId)
       ]);
       const owner = dog.owners || {};
-      const ageText = dog.age_years ? `${dog.age_years} a\u00f1o${dog.age_years > 1 ? 's' : ''}` : '';
+      const ageText = dog.age_years ? `${dog.age_years} año${dog.age_years > 1 ? 's' : ''}` : '';
       const ageMonths = dog.age_months ? `${dog.age_months} mes${dog.age_months > 1 ? 'es' : ''}` : '';
       const age = [ageText, ageMonths].filter(Boolean).join(', ') || 'No registrada';
 
@@ -320,82 +332,120 @@ const Dogs = (() => {
           <div>
             <h2 style="font-size:1.5rem;font-weight:800;">${UI.escapeHtml(dog.name)}</h2>
             <p style="color:var(--text-muted);font-size:0.9rem;">${UI.escapeHtml(dog.breed)} &middot; ${age}</p>
-            <div style="margin-top:8px;display:flex;gap:6px;">
-              ${dog.vaccination_up_to_date ? '<span class="meta-tag" style="color:#16a34a;">&#10003; Vacunas al d\u00eda</span>' : '<span class="meta-tag" style="color:#dc2626;">&#10007; Vacunas pendientes</span>'}
+            <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;">
+              ${dog.vaccination_up_to_date ? '<span class="meta-tag" style="color:#16a34a;">&#10003; Vacunas al día</span>' : '<span class="meta-tag" style="color:#dc2626;">&#10007; Vacunas pendientes</span>'}
               ${dog.is_neutered ? '<span class="meta-tag">Esterilizado</span>' : ''}
               ${dog.weight_kg ? `<span class="meta-tag">${dog.weight_kg} kg</span>` : ''}
+              ${isNewDog(dog) ? '<span class="meta-tag" style="background:linear-gradient(135deg,#8b5cf6,#6366f1);color:#fff;">Nuevo</span>' : ''}
             </div>
           </div>
         </div>
 
         <div class="detail-section">
-          <h4>&#128100; Informaci\u00f3n del Due\u00f1o</h4>
-          <div class="detail-grid">
-            <div class="detail-item">
-              <label>Nombre</label>
-              <span>${UI.escapeHtml(owner.name || 'N/A')}</span>
-            </div>
-            <div class="detail-item">
-              <label>Tel\u00e9fono</label>
-              <span>${UI.escapeHtml(owner.phone || 'N/A')}</span>
-            </div>
-            <div class="detail-item">
-              <label>Contacto Emergencia</label>
-              <span>${UI.escapeHtml(owner.emergency_contact || 'No registrado')}</span>
-            </div>
-            <div class="detail-item">
-              <label>Tel. Emergencia</label>
-              <span>${UI.escapeHtml(owner.emergency_phone || 'No registrado')}</span>
+          <h4 class="detail-section-toggle" onclick="this.parentElement.classList.toggle('collapsed')" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;user-select:none;">
+            <span>&#128100; Información del Dueño</span>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="transition:transform 0.2s;"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          </h4>
+          <div class="detail-section-content" style="transition:max-height 0.3s ease,opacity 0.2s ease;overflow:hidden;">
+            <div class="detail-grid">
+              <div class="detail-item">
+                <label>Nombre</label>
+                <span>${UI.escapeHtml(owner.name || 'N/A')}</span>
+              </div>
+              <div class="detail-item">
+                <label>Teléfono</label>
+                <span>${UI.escapeHtml(owner.phone || 'N/A')}</span>
+              </div>
+              <div class="detail-item">
+                <label>Contacto Emergencia</label>
+                <span>${UI.escapeHtml(owner.emergency_contact || 'No registrado')}</span>
+              </div>
+              <div class="detail-item">
+                <label>Tel. Emergencia</label>
+                <span>${UI.escapeHtml(owner.emergency_phone || 'No registrado')}</span>
+              </div>
             </div>
           </div>
         </div>
 
         ${dog.behavior_notes || dog.medical_restrictions || dog.dietary_restrictions ? `
         <div class="detail-section">
-          <h4>&#128203; Notas Importantes</h4>
-          ${dog.behavior_notes ? `<div class="detail-item" style="margin-bottom:10px;"><label>Comportamiento</label><span>${UI.escapeHtml(dog.behavior_notes)}</span></div>` : ''}
-          ${dog.medical_restrictions ? `<div class="detail-item" style="margin-bottom:10px;"><label>Restricciones M\u00e9dicas</label><span style="color:#dc2626;">${UI.escapeHtml(dog.medical_restrictions)}</span></div>` : ''}
-          ${dog.dietary_restrictions ? `<div class="detail-item"><label>Restricciones Alimentarias</label><span style="color:#f59e0b;">${UI.escapeHtml(dog.dietary_restrictions)}</span></div>` : ''}
+          <h4 class="detail-section-toggle" onclick="this.parentElement.classList.toggle('collapsed')" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;user-select:none;">
+            <span>&#128203; Notas Importantes</span>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="transition:transform 0.2s;"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          </h4>
+          <div class="detail-section-content" style="transition:max-height 0.3s ease,opacity 0.2s ease;overflow:hidden;">
+            ${dog.behavior_notes ? `<div class="detail-item" style="margin-bottom:10px;"><label>Comportamiento</label><span>${UI.escapeHtml(dog.behavior_notes)}</span></div>` : ''}
+            ${dog.medical_restrictions ? `<div class="detail-item" style="margin-bottom:10px;"><label>Restricciones Médicas</label><span style="color:#dc2626;">${UI.escapeHtml(dog.medical_restrictions)}</span></div>` : ''}
+            ${dog.dietary_restrictions ? `<div class="detail-item"><label>Restricciones Alimentarias</label><span style="color:#f59e0b;">${UI.escapeHtml(dog.dietary_restrictions)}</span></div>` : ''}
+          </div>
         </div>` : ''}
 
         <div class="detail-section">
-          <h4>&#128197; Historial de Visitas (${history.length})</h4>
-          <div class="history-list">
-            ${history.length > 0 ? `
-              <table style="width:100%;border-collapse:collapse;">
-                <thead>
-                  <tr>
-                    <th style="padding:8px;text-align:left;font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;">Fecha</th>
-                    <th style="padding:8px;text-align:left;font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;">Entrada</th>
-                    <th style="padding:8px;text-align:left;font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;">Salida</th>
-                    <th style="padding:8px;text-align:left;font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;">Duraci\u00f3n</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  ${history.map(h => {
-                    const duration = h.check_out_time
-                      ? UI.timeAgo(h.check_in_time).replace(UI.timeAgo(h.check_in_time), (() => {
-                          const diff = new Date(h.check_out_time) - new Date(h.check_in_time);
-                          const hrs = Math.floor(diff / 3600000);
-                          const mins = Math.floor((diff % 3600000) / 60000);
-                          return hrs > 0 ? `${hrs}h ${mins}m` : `${mins}m`;
-                        })())
-                      : '<span style="color:var(--primary);">En curso</span>';
-                    return `
-                      <tr style="border-top:1px solid var(--border-light);">
-                        <td style="padding:8px;font-size:0.8rem;">${UI.formatDate(h.check_in_time)}</td>
-                        <td style="padding:8px;font-size:0.8rem;">${UI.formatTime(h.check_in_time)}</td>
-                        <td style="padding:8px;font-size:0.8rem;">${h.check_out_time ? UI.formatTime(h.check_out_time) : '--'}</td>
-                        <td style="padding:8px;font-size:0.8rem;">${duration}</td>
-                      </tr>
-                    `;
-                  }).join('')}
-                </tbody>
-              </table>
-            ` : '<p style="text-align:center;color:var(--text-muted);padding:20px;font-size:0.85rem;">Sin visitas registradas</p>'}
+          <h4 class="detail-section-toggle" onclick="this.parentElement.classList.toggle('collapsed')" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;user-select:none;">
+            <span>&#128197; Historial de Visitas (${history.length})</span>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="transition:transform 0.2s;"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          </h4>
+          <div class="detail-section-content" style="transition:max-height 0.3s ease,opacity 0.2s ease;overflow:hidden;">
+            <div class="history-list">
+              ${history.length > 0 ? `
+                <table style="width:100%;border-collapse:collapse;">
+                  <thead>
+                    <tr>
+                      <th style="padding:8px;text-align:left;font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;">Fecha</th>
+                      <th style="padding:8px;text-align:left;font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;">Entrada</th>
+                      <th style="padding:8px;text-align:left;font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;">Salida</th>
+                      <th style="padding:8px;text-align:left;font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;">Duración</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${history.map(h => {
+                      const duration = h.check_out_time
+                        ? UI.timeAgo(h.check_in_time).replace(UI.timeAgo(h.check_in_time), (() => {
+                            const diff = new Date(h.check_out_time) - new Date(h.check_in_time);
+                            const hrs = Math.floor(diff / 3600000);
+                            const mins = Math.floor((diff % 3600000) / 60000);
+                            return hrs > 0 ? `${hrs}h ${mins}m` : `${mins}m`;
+                          })())
+                        : '<span style="color:var(--primary);">En curso</span>';
+                      return `
+                        <tr style="border-top:1px solid var(--border-light);">
+                          <td style="padding:8px;font-size:0.8rem;">${UI.formatDate(h.check_in_time)}</td>
+                          <td style="padding:8px;font-size:0.8rem;">${UI.formatTime(h.check_in_time)}</td>
+                          <td style="padding:8px;font-size:0.8rem;">${h.check_out_time ? UI.formatTime(h.check_out_time) : '--'}</td>
+                          <td style="padding:8px;font-size:0.8rem;">${duration}</td>
+                        </tr>
+                      `;
+                    }).join('')}
+                  </tbody>
+                </table>
+              ` : '<p style="text-align:center;color:var(--text-muted);padding:20px;font-size:0.85rem;">Sin visitas registradas</p>'}
+            </div>
           </div>
         </div>
       `;
+
+      // Inject collapsible section styles if not present
+      if (!document.getElementById('collapsible-styles')) {
+        const style = document.createElement('style');
+        style.id = 'collapsible-styles';
+        style.textContent = `
+          .detail-section.collapsed .detail-section-content {
+            max-height: 0 !important;
+            opacity: 0;
+            padding-top: 0;
+            padding-bottom: 0;
+          }
+          .detail-section .detail-section-content {
+            max-height: 1000px;
+            opacity: 1;
+          }
+          .detail-section.collapsed .detail-section-toggle svg {
+            transform: rotate(-90deg);
+          }
+        `;
+        document.head.appendChild(style);
+      }
 
       const footer = `
         <button class="btn btn-secondary" onclick="UI.closeModal()">Cerrar</button>
