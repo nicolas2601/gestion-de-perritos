@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TIKNO Mascotas - Guardería Canina</title>
+  <meta name="description" content="Sistema de gestión para guardería canina TIKNO Mascotas">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐾</text></svg>">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <div class="app-layout">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-brand">
+        <h1>
+          <span class="brand-icon">&#128062;</span>
+          TIKNO Mascotas
+        </h1>
+        <p>Guardería Canina</p>
+      </div>
+
+      <nav class="sidebar-nav">
+        <button class="nav-item active" data-view="dashboard">
+          <span class="nav-icon">&#127968;</span>
+          Dashboard
+          <span class="nav-badge" id="nav-badge-active">0</span>
+        </button>
+        <button class="nav-item" data-view="dogs">
+          <span class="nav-icon">&#128054;</span>
+          Perros
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <p>&copy; 2026 TIKNO Mascotas</p>
+        <p>mascotas.tikno.pro</p>
+      </div>
+    </aside>
+
+    <!-- SIDEBAR OVERLAY (mobile) -->
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+    <!-- MAIN -->
+    <main class="main-content">
+
+      <!-- TOP BAR -->
+      <header class="top-bar">
+        <div class="top-bar-left">
+          <button class="menu-toggle" id="menu-toggle">&#9776;</button>
+          <div>
+            <h2 id="page-title">Dashboard</h2>
+            <p id="page-subtitle">Control diario de la guardería</p>
+          </div>
+        </div>
+        <div class="top-bar-right">
+          <span class="current-time" id="current-time">--:--:--</span>
+          <button class="btn-refresh" onclick="Dashboard.refresh()">
+            &#8635; Actualizar
+          </button>
+        </div>
+      </header>
+
+      <!-- PAGE CONTENT -->
+      <div class="page-content">
+
+        <!-- ====== DASHBOARD VIEW ====== -->
+        <section class="view active" id="view-dashboard">
+
+          <!-- Stats -->
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-icon" style="background:#f0fdf4;color:#16a34a;">&#128054;</div>
+              <div class="stat-value" id="stat-active">0</div>
+              <div class="stat-label">En guardería ahora</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon" style="background:#eff6ff;color:#2563eb;">&#128203;</div>
+              <div class="stat-value" id="stat-total-dogs">0</div>
+              <div class="stat-label">Perros registrados</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon" style="background:#fef3c7;color:#f59e0b;">&#128197;</div>
+              <div class="stat-value" id="stat-today">0</div>
+              <div class="stat-label">Visitas hoy</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon" style="background:#fdf2f8;color:#ec4899;">&#10003;</div>
+              <div class="stat-value" id="stat-checkout">0</div>
+              <div class="stat-label">Check-outs hoy</div>
+            </div>
+          </div>
+
+          <!-- Toolbar -->
+          <div class="toolbar">
+            <div class="search-box">
+              <span class="search-icon">&#128269;</span>
+              <input type="text" placeholder="Buscar por nombre, raza o dueño..."
+                     oninput="Dashboard.setSearch(this.value)">
+            </div>
+            <div class="filter-group">
+              <button class="filter-btn active" data-filter="todos" onclick="Dashboard.setFilter('todos')">Todos</button>
+              <button class="filter-btn" data-filter="en_patio" onclick="Dashboard.setFilter('en_patio')">&#9728; Patio</button>
+              <button class="filter-btn" data-filter="comiendo" onclick="Dashboard.setFilter('comiendo')">&#127860; Comiendo</button>
+              <button class="filter-btn" data-filter="descansando" onclick="Dashboard.setFilter('descansando')">&#128564; Descansando</button>
+              <button class="filter-btn" data-filter="jugando" onclick="Dashboard.setFilter('jugando')">&#127934; Jugando</button>
+              <button class="filter-btn" data-filter="en_bano" onclick="Dashboard.setFilter('en_bano')">&#128703; Baño</button>
+            </div>
+            <button class="btn btn-primary" onclick="Dashboard.showCheckInModal()">
+              &#43; Check-in
+            </button>
+          </div>
+
+          <!-- Check-ins Table -->
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Perro</th>
+                  <th>Hora entrada</th>
+                  <th>Tiempo</th>
+                  <th>Estado</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="checkins-table-body">
+                <tr><td colspan="5"><div class="loading-spinner" style="margin:40px auto;"></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- ====== DOGS VIEW ====== -->
+        <section class="view" id="view-dogs">
+
+          <!-- Toolbar -->
+          <div class="toolbar">
+            <div class="search-box">
+              <span class="search-icon">&#128269;</span>
+              <input type="text" placeholder="Buscar perro, raza o dueño..."
+                     oninput="Dogs.searchDogs(this.value)">
+            </div>
+            <button class="btn btn-primary" onclick="Dogs.showCreateModal()">
+              &#43; Registrar Perro
+            </button>
+          </div>
+
+          <!-- Dogs Grid -->
+          <div class="dogs-grid" id="dogs-grid">
+            <div style="grid-column:1/-1;text-align:center;padding:40px;">
+              <div class="loading-spinner"></div>
+            </div>
+          </div>
+        </section>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- TOAST CONTAINER -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- SCRIPTS -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/config.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/supabase.js"></script>
+  <script src="js/dashboard.js"></script>
+  <script src="js/dogs.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
